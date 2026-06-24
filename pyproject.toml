@@ -1,0 +1,26 @@
+[project]
+name = "ai-translation-tui"
+version = "0.1.0"
+description = "Production-grade multi-agent AI translation TUI"
+requires-python = ">=3.10,<3.14"
+
+dependencies = [
+    "crewai>=0.130",
+    "crewai-tools>=0.40",
+    "textual>=0.80",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "langdetect>=1.0.9",
+]
+
+# ─────────────────────────────────────────────────────────────────────
+# THIS is the fix. Hatchling needs to know which directories are your
+# actual Python source. Since we use a flat layout (code at root, not
+# inside a src/ folder), we list every package directory explicitly.
+# ─────────────────────────────────────────────────────────────────────
+[tool.hatch.build.targets.wheel]
+packages = ["llm", "orchestration", "services", "tui"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

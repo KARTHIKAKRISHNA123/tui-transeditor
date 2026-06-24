@@ -1,0 +1,32 @@
+defaults: &defaults
+  provider: openrouter
+  base_url: https://openrouter.ai/api/v1
+  timeout: 180
+  max_tokens: 4000
+
+roles:
+  translator:
+    <<: *defaults
+    model: openrouter/google/gemma-4-31b-it:free
+    temperature: 0.3
+
+  reviewer:
+    <<: *defaults
+    model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+    temperature: 0.1
+
+  corrector:
+    <<: *defaults
+    model: openrouter/openai/gpt-oss-120b:free
+    temperature: 0.2
+
+  # QA reuses corrector model — same family, already proven working
+  qa:
+    <<: *defaults
+    model: openrouter/openai/gpt-oss-120b:free
+    temperature: 0.0
+
+  fallback:
+    <<: *defaults
+    model: openrouter/auto
+    temperature: 0.2

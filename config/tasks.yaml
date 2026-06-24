@@ -1,0 +1,35 @@
+# config/tasks.yaml — task descriptions use {placeholders} filled from kickoff inputs.
+# The "|" preserves line breaks; ">" folds them. Both keep YAML readable.
+translate_task:
+  description: |
+    Translate the SOURCE TEXT from {source_lang} into {target_lang}.
+    Preserve every ⟦N⟧ sentinel exactly. Consult the glossary tool first.
+
+    SOURCE TEXT:
+    {source_text}
+  expected_output: >
+    Only the {target_lang} translation. No preamble, no notes, no quotes.
+
+review_task:
+  description: |
+    Compare the translation above against the {source_lang} source. List every
+    issue: mistranslations, omissions, additions, tone/register drift, and
+    terminology violations. If none, say "NO ISSUES".
+  expected_output: >
+    A numbered list of concrete issues (or "NO ISSUES"). Do NOT rewrite the text.
+
+correct_task:
+  description: |
+    Apply the reviewer's issues to the translation. Change ONLY what was flagged.
+    Preserve every ⟦N⟧ sentinel. Keep the translator's voice everywhere else.
+  expected_output: >
+    Only the corrected {target_lang} translation. No commentary.
+
+qa_task:
+  description: |
+    Evaluate the corrected translation against the {source_lang} source for
+    adequacy (meaning preserved) and fluency (reads naturally in {target_lang}).
+    Confirm terminology and that the output is genuinely in {target_lang}.
+  expected_output: >
+    A structured verdict with adequacy and fluency in [0,1], a terminology flag,
+    an issues list, and a "pass"/"fail" verdict.

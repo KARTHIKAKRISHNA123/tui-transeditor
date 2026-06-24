@@ -1,0 +1,208 @@
+/* app.tcss — AI Translation TUI — full violet palette */
+
+Screen {
+    background: #120a1e;
+    color: #ede9fe;
+    layout: vertical;
+}
+
+Header {
+    background: #1e0a3c;
+    color: #c4b5fd;
+    text-style: bold;
+    border-bottom: solid #6d28d9;
+    height: 3;
+}
+
+Footer {
+    background: #1e0a3c;
+    color: #7c3aed;
+    border-top: solid #4c1d95;
+    height: 1;
+}
+
+#body {
+    height: 1fr;
+    background: #120a1e;
+}
+
+#left-col {
+    width: 30;
+    background: #120a1e;
+    border-right: solid #4c1d95;
+    padding: 0 1;
+}
+
+#right-col {
+    width: 1fr;
+    background: #120a1e;
+    padding: 0 1;
+    layout: vertical;
+}
+
+/* ── Agent pipeline ──────────────────────────────────────────────── */
+#agent-panel {
+    height: auto;
+    background: #1e0a3c;
+    border: solid #4c1d95;
+    padding: 1;
+    margin-bottom: 1;
+}
+
+#pipeline-title {
+    color: #9d4edd;
+    text-style: bold;
+    margin-bottom: 1;
+    height: 1;
+}
+
+.agent-row {
+    height: 3;
+    background: #2d1060;
+    border: solid #4c1d95;
+    padding: 0 1;
+    margin-bottom: 1;
+    layout: horizontal;
+}
+.agent-row:hover { border: solid #7c3aed; }
+
+.agent-icon  { width: 5;   color: #4c1d95; }
+.agent-name  { width: 12;  color: #c4b5fd; }
+.agent-model { width: 1fr; color: #6d28d9; text-style: dim; }
+.agent-time  { width: 6;   color: #9d4edd; }
+
+.status-pending .agent-icon { color: #4c1d95; }
+.status-pending .agent-name { color: #6d28d9; }
+.status-running .agent-icon { color: #d29922; text-style: bold; }
+.status-running .agent-name { color: #e3b341; text-style: bold; }
+.status-running             { border: solid #d29922; }
+.status-done .agent-icon    { color: #3fb950; }
+.status-done .agent-name    { color: #3fb950; }
+.status-done                { border: solid #238636; }
+.status-fail .agent-icon    { color: #f85149; }
+.status-fail .agent-name    { color: #f85149; }
+.status-fail                { border: solid #da3633; }
+
+/* ── QA panel ────────────────────────────────────────────────────── */
+#qa-panel {
+    height: auto;
+    background: #1e0a3c;
+    border: solid #4c1d95;
+    padding: 1;
+}
+#qa-title {
+    color: #9d4edd;
+    text-style: bold;
+    margin-bottom: 1;
+    height: 1;
+}
+#qa-score-bar {
+    height: 1;
+    background: #2d1060;
+    margin-bottom: 1;
+}
+ProgressBar > .bar--bar      { color: #7c3aed; }
+ProgressBar > .bar--complete { color: #9d4edd; }
+#qa-body { color: #c4b5fd; height: auto; }
+
+/* ── Input area ──────────────────────────────────────────────────── */
+#input-area {
+    height: 30;
+    background: #1e0a3c;
+    border: solid #4c1d95;
+    padding: 1;
+    margin-bottom: 1;
+}
+
+#lbl-src, #lbl-tgt, #lbl-text, #lbl-trigger {
+    color: #9d4edd;
+    text-style: bold;
+    height: 1;
+    margin-bottom: 0;
+}
+
+#lbl-trigger {
+    color: #c4b5fd;
+    text-style: bold;
+    margin-top: 1;
+}
+
+#src-lang, #tgt-lang {
+    height: 3;
+    background: #2d1060;
+    border: solid #6d28d9;
+    color: #ede9fe;
+    margin-bottom: 1;
+}
+#src-lang:focus, #tgt-lang:focus { border: solid #9d4edd; }
+
+#source-input {
+    height: 8;
+    min-height: 8;
+    background: #2d1060;
+    border: tall #7c3aed;
+    color: #ede9fe;
+    margin-bottom: 0;
+}
+#source-input:focus {
+    border: tall #9d4edd;
+    background: #3b1680;
+}
+
+/* Trigger input — bright border so user knows to press Enter here */
+#trigger-input {
+    height: 3;
+    background: #2d1060;
+    border: tall #9d4edd;
+    color: #ede9fe;
+    margin-bottom: 0;
+}
+#trigger-input:focus {
+    border: tall #c4b5fd;
+    background: #3b1680;
+}
+
+#status-bar {
+    height: 1;
+    color: #c4b5fd;
+    background: #1e0a3c;
+    padding: 0 1;
+}
+
+/* ── Translation output ──────────────────────────────────────────── */
+#output-area {
+    height: 1fr;
+    background: #1e0a3c;
+    border: solid #4c1d95;
+    padding: 1;
+    margin-bottom: 1;
+}
+#output-title {
+    color: #9d4edd;
+    text-style: bold;
+    height: 1;
+    margin-bottom: 1;
+}
+#output-body {
+    color: #ede9fe;
+    height: 1fr;
+}
+
+/* ── Live logs ───────────────────────────────────────────────────── */
+#log-area {
+    height: 10;
+    background: #1e0a3c;
+    border: solid #4c1d95;
+    padding: 0 1;
+}
+#log-title {
+    color: #9d4edd;
+    text-style: bold;
+    height: 1;
+}
+#live-log {
+    height: 1fr;
+    background: #1e0a3c;
+    scrollbar-color: #4c1d95;
+    scrollbar-background: #1e0a3c;
+}
