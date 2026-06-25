@@ -9,9 +9,9 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Label, Static
 
 _AGENTS: list[tuple[str, str]] = [
-    ("translator", "Gemma 4 31B"),
-    ("reviewer",   "Nemotron 120B"),
-    ("corrector",  "GPT-OSS 120B"),
+    ("translator", "Llama 4 Scout"),
+    ("reviewer",   "Llama 4 Scout"),
+    ("corrector",  "Llama 4 Scout"),
 ]
 
 _STATUS_ICON = {

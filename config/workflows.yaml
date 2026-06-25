@@ -7,3 +7,4 @@ quality:
   pass_threshold: 0.80             # min average adequacy+fluency to "pass"
 runtime:
   verbose: false                   # set true to see CrewAI's full reasoning in the console
+  max_rpm: 25                      # under Groq free tier's 30 req/min cap

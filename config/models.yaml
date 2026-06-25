@@ -1,32 +1,60 @@
+# config/models.yaml
+# Models route through LiteLLM, which supports many providers. Pick a provider
+# per role with `provider:` + a LiteLLM model slug. Each provider reads its own
+# API key env var (see _PROVIDER_KEY_ENV in llm/provider.py).
+#
+# ── CURRENT SETUP: Groq (free, fast, 30 req/min) ─────────────────────────────
+# Get a free key at https://console.groq.com/keys and put it in .env:
+#     GROQ_API_KEY=gsk_...
+# Groq free-tier limits are far higher than OpenRouter's free tier, so the
+# multi-agent pipeline actually completes.
+#
+# MODEL CHOICE — TPM matters most on the free tier:
+#   meta-llama/llama-4-scout-17b-16e-instruct  → 30,000 tokens/min (HIGH)  ← used
+#   openai/gpt-oss-120b                         →  8,000 tokens/min (too low for
+#                                                  a 3-agent pipeline with tools)
+# The big agent system-prompts (tool schemas + playbooks) cost ~7k tokens each,
+# so 3 sequential agents blow past 8k TPM but fit comfortably under 30k.
+# LiteLLM slug = groq/<groq-model-id>. Live list: https://console.groq.com/docs/models
+#
+# To switch back to OpenRouter for any role, set:
+#     provider: openrouter
+#     model: openrouter/<org>/<model>:free
+#     base_url: https://openrouter.ai/api/v1
+# and put OPENROUTER_API_KEY in .env.
+
 defaults: &defaults
-  provider: openrouter
-  base_url: https://openrouter.ai/api/v1
-  timeout: 180
-  max_tokens: 4000
+  timeout: 60
+  max_tokens: 1024     # translations are short; smaller cap = lower TPM pressure
+  num_retries: 5       # free tiers throttle (429); retry with backoff
 
 roles:
   translator:
     <<: *defaults
-    model: openrouter/google/gemma-4-31b-it:free
+    provider: groq
+    model: groq/meta-llama/llama-4-scout-17b-16e-instruct
     temperature: 0.3
 
   reviewer:
     <<: *defaults
-    model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+    provider: groq
+    model: groq/meta-llama/llama-4-scout-17b-16e-instruct
     temperature: 0.1
 
   corrector:
     <<: *defaults
-    model: openrouter/openai/gpt-oss-120b:free
+    provider: groq
+    model: groq/meta-llama/llama-4-scout-17b-16e-instruct
     temperature: 0.2
 
-  # QA reuses corrector model — same family, already proven working
   qa:
     <<: *defaults
-    model: openrouter/openai/gpt-oss-120b:free
-    temperature: 0.0
+    provider: groq
+    model: groq/meta-llama/llama-4-scout-17b-16e-instruct
+    temperature: 0.0     # deterministic, well-formed JSON scoring
 
   fallback:
     <<: *defaults
-    model: openrouter/auto
+    provider: groq
+    model: groq/openai/gpt-oss-20b
     temperature: 0.2

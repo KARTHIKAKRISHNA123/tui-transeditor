@@ -1,183 +1,109 @@
 # tui/screens/translate_screen.py
+# Minimal, robust translation screen. Priorities: always respond to the button,
+# always show the output. No _running guard (it was getting stuck and blocking
+# every click) — the worker's own exclusive=True handles concurrency.
 from __future__ import annotations
 
+import logging
+
+from rich.markup import escape
 from textual import on, work
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label, Static, TextArea
-from textual.widgets import Button   # add to imports at top
+from textual.widgets import (Button, Footer, Header, Input, Label, Static,
+                             TextArea)
 
+from services.translation_service import TranslationService
 
-from services.translation_service import PipelineEvent, TranslationService
-from tui.widgets.agent_status import AgentStatusPanel
-from tui.widgets.log_panel import LogPanel
-from tui.widgets.qa_panel import QAPanel
-from tui.widgets.translation_panel import TranslationPanel
-
-_AGENTS = ["translator", "reviewer", "corrector"]
+_log = logging.getLogger("tui.translate_screen")
 
 
 class TranslateScreen(Screen):
+    CSS = """
+    Screen { layout: vertical; }
+    #form { height: auto; padding: 1 2; }
+    Label { color: $text-muted; margin-top: 1; }
+    #src, #tgt { height: 3; }
+    #source { height: 6; border: round $primary; }
+    #run { margin-top: 1; }
+    #status { height: 1; color: $warning; padding: 0 2; }
+    #out-title { color: $accent; margin-top: 1; padding: 0 2; }
+    #output {
+        height: 1fr; border: round $accent; padding: 1; margin: 0 2 1 2;
+        background: $surface;
+    }
+    """
 
     def __init__(self, service: TranslationService) -> None:
         super().__init__()
         self._service = service
-        self._running = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        with Horizontal(id="body"):
-            with Vertical(id="left-col"):
-                yield AgentStatusPanel()
-                yield QAPanel()
-            with Vertical(id="right-col"):
-                with Vertical(id="input-area"):
-                    yield Label(" SOURCE LANGUAGE", id="lbl-src")
-                    yield Input(
-                        placeholder="Source language (e.g. English)",
-                        id="src-lang",
-                        value="English",
-                    )
-                    yield Label(" TARGET LANGUAGE", id="lbl-tgt")
-                    yield Input(
-                        placeholder="Target language (e.g. Tamil)",
-                        id="tgt-lang",
-                        value="Tamil",
-                    )
-                    yield Label(" SOURCE TEXT", id="lbl-text")
-                    yield TextArea(id="source-input", language=None)
-                    yield Button("TRANSLATE", id="run-btn", variant="primary")
-
-                    yield Static("", id="status-bar")
-                yield TranslationPanel()
-                with Vertical(id="log-area"):
-                    yield Label(" LIVE LOGS", id="log-title")
-                    yield LogPanel()
+        with Vertical(id="form"):
+            yield Label("SOURCE LANGUAGE")
+            yield Input(value="English", id="src")
+            yield Label("TARGET LANGUAGE")
+            yield Input(value="Tamil", id="tgt")
+            yield Label("SOURCE TEXT")
+            yield TextArea(id="source")
+            yield Button("TRANSLATE", id="run", variant="primary")
+        yield Static("", id="status")
+        yield Label("TRANSLATION OUTPUT", id="out-title")
+        yield Static("[dim]Translation will appear here...[/]", id="output")
         yield Footer()
 
     def on_mount(self) -> None:
-        # Set TextArea height
-        ta = self.query_one("#source-input", TextArea)
-        ta.styles.height     = 8
-        ta.styles.min_height = 8
-        # Focus the source text first so user can type
-        ta.focus()
+        _log.info("TranslateScreen mounted")
+        self.query_one("#source", TextArea).focus()
 
-    # ── THE TRIGGER: Input.Submitted on the trigger-input ────────────────
-    # Input.Submitted fires when user presses Enter inside any Input widget.
-    # VS Code never intercepts plain Enter in a focused single-line Input.
-    # This is the most reliable trigger across ALL terminals and IDEs.
-
-    def on_button_pressed(self, event) -> None:
-        if event.button.id == "run-btn":
-            event.stop()
-            self._trigger_translation()
-
-    # Also handle Enter in the language inputs for convenience
-    @on(Input.Submitted, "#src-lang")
-    @on(Input.Submitted, "#tgt-lang")
-    def on_lang_submitted(self, event: Input.Submitted) -> None:
-        # Tab to next field rather than triggering translation
-        self.focus_next()
-
-    def _set_status(self, msg: str) -> None:
-        try:
-            self.query_one("#status-bar", Static).update(msg)
-        except Exception:
-            pass
-
-    def _trigger_translation(self) -> None:
-        if self._running:
-            self._set_status("[yellow]Already running — please wait...[/]")
-            return
-
-        text = self.query_one("#source-input", TextArea).text.strip()
+    @on(Button.Pressed, "#run")
+    def _go(self, event: Button.Pressed) -> None:
+        event.stop()
+        text = self.query_one("#source", TextArea).text.strip()
         if not text:
-            self._set_status(
-                "[red]Source text is empty — type text above first[/]"
+            self.query_one("#status", Static).update(
+                "[red]Type some source text first[/]"
             )
-            self.query_one("#source-input", TextArea).focus()
             return
+        src = self.query_one("#src", Input).value.strip() or "English"
+        tgt = self.query_one("#tgt", Input).value.strip() or "Tamil"
 
-        src = self.query_one("#src-lang", Input).value.strip() or "English"
-        tgt = self.query_one("#tgt-lang", Input).value.strip() or "Tamil"
-        self._start_pipeline(text, src, tgt)
+        # Immediate feedback on the MAIN thread, before any worker — so the
+        # click is always visibly acknowledged.
+        self.query_one("#status", Static).update(f"[yellow]Translating {src} -> {tgt}...[/]")
+        self.query_one("#output", Static).update("[dim]Working...[/]")
+        _log.info("TRANSLATE clicked: %s -> %s", src, tgt)
+        self._run(text, src, tgt)
 
-    def _start_pipeline(self, text: str, src: str, tgt: str) -> None:
-        self._running = True
-        self._set_status(
-            f"[bold #9d4edd]Translating ({src} → {tgt})...[/]"
-        )
-        for name in _AGENTS:
-            self.query_one(AgentStatusPanel).set_status(name, "pending")
-        self.query_one(TranslationPanel).set_output("")
-        self.query_one(QAPanel).reset()
-        self.query_one(LogPanel).line(
-            f"[bold #9d4edd]Starting: {text[:60]}[/]"
-        )
-        self.run_pipeline(text, src, tgt)
-
-    def _end_pipeline(self) -> None:
-        self._running = False
-        # Return focus to trigger input so user can hit Enter again
+    @work(exclusive=True, thread=True)
+    def _run(self, text: str, src: str, tgt: str) -> None:
+        # Runs in a background thread. The ONLY cross-thread UI calls happen at
+        # the very end (one call), so there's nothing to deadlock mid-run.
+        _log.info("worker running translate()")
         try:
-            self.query_one("#trigger-input", Input).focus()
-        except Exception:
-            pass
-
-    @work(thread=True, exclusive=True, exit_on_error=False)
-    def run_pipeline(self, text: str, src: str, tgt: str) -> None:
-        try:
-            result = self._service.translate(
-                text, src, tgt, on_event=self._emit
-            )
-            self.app.call_from_thread(self._on_success, result)
+            result = self._service.translate(text, src, tgt, lambda e: None)
+            _log.info("worker got result; pushing to UI")
+            self.app.call_from_thread(self._show, result)
         except Exception as exc:
-            self.app.call_from_thread(self._on_error, str(exc))
+            _log.exception("worker failed: %s", exc)
+            self.app.call_from_thread(self._fail, str(exc))
 
-    def _emit(self, event: PipelineEvent) -> None:
-        self.app.call_from_thread(self._apply, event)
-
-    def _apply(self, event: PipelineEvent) -> None:
-        logs   = self.query_one(LogPanel)
-        agents = self.query_one(AgentStatusPanel)
-        output = self.query_one(TranslationPanel)
-
-        if event.type == "stage_started":
-            agents.set_status(event.stage, "running")
-            self._set_status(f"[yellow]Running {event.stage}...[/]")
-            logs.line(f"[yellow]> {event.stage}[/] running...")
-        elif event.type == "stage_completed":
-            agents.set_status(event.stage, "done")
-            logs.line(f"[green]+ {event.stage}[/] done")
-            if event.stage == "corrector" and event.payload:
-                output.set_output(event.payload)
-                self._set_status("[green]Translation ready[/]")
-        elif event.type == "log":
-            logs.line(f"[dim]{event.payload}[/]")
-        elif event.type == "finished":
-            logs.line(f"[#9d4edd]{event.payload}[/]")
-        elif event.type == "error":
-            logs.line(f"[red]{event.payload[:150]}[/]")
-            self._set_status(f"[red]{event.payload[:80]}[/]")
-
-    def _on_success(self, result) -> None:
+    def _show(self, result) -> None:
+        out = (result.final_text or "").strip() or "(no output produced)"
+        self.query_one("#output", Static).update(escape(out))
+        line = f"[green]Done in {result.elapsed:.1f}s[/]"
         v = result.verdict
-        self.query_one(QAPanel).set_verdict(v.passed, v.score, v.reasons)
-        self.query_one(TranslationPanel).set_output(result.final_text)
-        self._set_status(
-            f"[green]Done in {result.elapsed:.1f}s — "
-            f"press Enter in the box below for another[/]"
-        )
-        self.query_one(LogPanel).line(
-            f"[green]DONE[/] [dim]{result.elapsed:.1f}s[/]"
-        )
-        self._end_pipeline()
+        if v is not None:
+            verd = "PASS" if v.passed else "FAIL"
+            colour = "green" if v.passed else "red"
+            line += f"  [{colour}]·  QA {verd} {v.score:.0%}[/]"
+        self.query_one("#status", Static).update(line)
+        self.query_one("#source", TextArea).focus()
 
-    def _on_error(self, msg: str) -> None:
-        self.query_one(LogPanel).line(f"[bold red]Error:[/] {msg[:200]}")
-        self._set_status(f"[red]Error — see logs[/]")
-        for name in _AGENTS:
-            self.query_one(AgentStatusPanel).set_status(name, "fail")
-        self._end_pipeline()
+    def _fail(self, msg: str) -> None:
+        self.query_one("#output", Static).update(
+            f"[red]Error:[/] {escape(msg[:400])}"
+        )
+        self.query_one("#status", Static).update("[red]Error - see translation.log[/]")

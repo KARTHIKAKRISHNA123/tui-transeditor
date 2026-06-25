@@ -55,10 +55,13 @@ class ModelRouter:
         cfg = self._roles[role]
         spec = ModelSpec(
             model=cfg["model"],
-            base_url=cfg["base_url"],
+            provider=cfg.get("provider", "groq"),
             temperature=cfg["temperature"],
             timeout=cfg["timeout"],
             max_tokens=cfg["max_tokens"],
+            num_retries=cfg.get("num_retries", 5),
+            base_url=cfg.get("base_url"),
+            api_key_env=cfg.get("api_key_env"),
         )
         return self._provider.build(spec)
 

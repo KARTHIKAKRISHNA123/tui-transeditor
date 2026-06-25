@@ -2,6 +2,8 @@
 """QA verdict panel — no emojis."""
 from __future__ import annotations
 
+from rich.markup import escape
+
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Label, ProgressBar, Static
@@ -32,10 +34,10 @@ class QAPanel(Static):
 
         if reasons:
             issues = "\n".join(
-                f"  [dim]-[/] [yellow]{r[:60]}[/]"
-                for r in reasons[:5]
+                f"  [dim]-[/] [yellow]{escape(str(r)[:80])}[/]"
+                for r in reasons[:6]
             )
-            body.update(f"{verdict_line}\n\n[dim]Issues:[/]\n{issues}")
+            body.update(f"{verdict_line}\n\n[dim]Details:[/]\n{issues}")
         else:
             body.update(f"{verdict_line}\n\n[dim green]No issues found.[/]")
 

@@ -26,11 +26,15 @@ class TranslationCrew:
     def build(self, task_callback: Callable | None = None) -> Crew:
         agents = self._agent_factory.build_all()
         tasks = self._task_factory.build_all(agents)
+        runtime = self._wf["runtime"]
         return Crew(
             agents=list(agents.values()),
             tasks=tasks,
             process=Process.sequential,   # strict Translator→Reviewer→Corrector→QA
             memory=False,                 # ← OpenRouter has no embeddings endpoint
-            verbose=self._wf["runtime"]["verbose"],
+            verbose=runtime["verbose"],
+            # Spread requests out so the bursty multi-agent pipeline stays under
+            # OpenRouter's free-tier rate cap (complements per-call num_retries).
+            max_rpm=runtime.get("max_rpm", 15),
             task_callback=task_callback,  # fires when EACH task finishes → streaming
         )

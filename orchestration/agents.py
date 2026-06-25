@@ -9,7 +9,6 @@ import yaml
 from crewai import Agent
 
 from llm.router import ModelRouter
-from orchestration.tools import glossary_tool, language_tool
 
 
 class AgentFactory:
@@ -19,14 +18,13 @@ class AgentFactory:
         self._prompts_dir = prompts_dir
         self._agents_dir = agents_dir
         self._cfg = yaml.safe_load((config_dir / "agents.yaml").read_text("utf-8"))
-        # Each agent's tool loadout. Deterministic guards are NOT here — they
-        # run in the service layer. (See the Slice 2 lesson.)
-        self._tools = {
-            "translator": [glossary_tool, language_tool],
-            "reviewer":   [glossary_tool, language_tool],
-            "corrector":  [glossary_tool],
-            "qa":         [language_tool],
-        }
+        # NO tools. Tools forced CrewAI into the ReAct "Thought/Action" loop,
+        # which free models (Llama 4 Scout etc.) handle badly — they burned the
+        # turn on tool-reasoning, leaked meta-commentary, and lost the context
+        # passed between stages. Plain direct-output agents produce clean text
+        # and properly use each prior stage's output. Glossary/language checks
+        # are deterministic and live in the service layer instead.
+        self._tools = {}
 
     def _full_backstory(self, name: str) -> str:
         """Merge the three sources of truth: yaml backstory + prompt body +
