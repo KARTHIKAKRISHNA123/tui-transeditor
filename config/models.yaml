@@ -33,28 +33,28 @@ roles:
     <<: *defaults
     provider: groq
     model: groq/meta-llama/llama-4-scout-17b-16e-instruct
-    temperature: 0.3
+    temperature: 0.7
 
   reviewer:
     <<: *defaults
     provider: groq
     model: groq/meta-llama/llama-4-scout-17b-16e-instruct
-    temperature: 0.1
+    temperature: 0.7
 
   corrector:
     <<: *defaults
     provider: groq
     model: groq/meta-llama/llama-4-scout-17b-16e-instruct
-    temperature: 0.2
+    temperature: 0.7
 
   qa:
     <<: *defaults
     provider: groq
     model: groq/meta-llama/llama-4-scout-17b-16e-instruct
-    temperature: 0.0     # deterministic, well-formed JSON scoring
+    temperature: 0.7     # deterministic, well-formed JSON scoring
 
   fallback:
     <<: *defaults
     provider: groq
     model: groq/openai/gpt-oss-20b
-    temperature: 0.2
+    temperature: 0.7
